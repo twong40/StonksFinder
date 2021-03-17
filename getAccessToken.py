@@ -1,4 +1,4 @@
-from credentials import *
+from credentials import clientId, clientSecret, userName, password
 import requests
 import requests.auth
 
