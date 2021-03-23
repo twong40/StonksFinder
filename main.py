@@ -1,18 +1,63 @@
 from getAccessToken import getToken
-from databaseOperations import createClient, insertOne, insertMany
+from databaseOperations import createClient, insertOne, findItem
 from credentials import stockApiKey, userAgent
 from datetime import datetime
+from pprint import pprint
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 import requests
 import itertools
 import time
 import re
 
 def main():
-    db = createClient()
-    stockSymbols = searchReddit()
-    jsonData = searchStockInfo(stockSymbols)
-    print("Phase 3: Saving to MongoDb")
-    insertOne(db, jsonData)
+    while(True):
+        choice = input("Choose an option to run:\n[1] Collect reddit data\n[2] Display Data\n[3] Exit\nInput: ")
+        db = createClient()
+        if choice == "1":
+            stockSymbols = searchReddit()
+            jsonData = searchStockInfo(stockSymbols)
+            pprint("Phase 3: Saving to MongoDb")
+            insertOne(db, jsonData)
+        elif choice == "2":
+            pprint("Displaing Data")
+            # Data for plotting
+            t = np.arange(0.0, 2.0, 0.01)
+            s = 1 + np.sin(2 * np.pi * t)
+
+            fig, ax = plt.subplots()
+            ax.plot(t, s)
+
+            ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+                title='About as simple as it gets, folks')
+            ax.grid()
+
+            fig.savefig("test.png")
+            plt.show()
+            labels = ['G1', 'G2', 'G3', 'G4', 'G5']
+            men_means = [20, 35, 30, 35, 27]
+            women_means = [25, 32, 34, 20, 25]
+            men_std = [2, 3, 4, 1, 2]
+            women_std = [3, 5, 2, 3, 3]
+            width = 0.35       # the width of the bars: can also be len(x) sequence
+
+            fig, ax = plt.subplots()
+
+            ax.bar(labels, men_means, width, yerr=men_std, label='Men')
+            ax.bar(labels, women_means, width, yerr=women_std, bottom=men_means,
+                label='Women')
+
+            ax.set_ylabel('Scores')
+            ax.set_title('Scores by group and gender')
+            ax.legend()
+
+            plt.show()
+        elif choice == "3":
+            pprint("Exiting")
+            break
+        else:
+            pprint("Not a valid option!")
 
 def isValidSymbol(symbolToCheck):
     regex = re.compile('[0-9@_!#%^&*()<>?/\|}{~:]')
@@ -21,7 +66,7 @@ def isValidSymbol(symbolToCheck):
     return False
 
 def searchReddit():
-    print("Phase 1: Scanning subreddits")
+    pprint("Phase 1: Scanning subreddits")
     seenTitles = set()
     stockSymbols = dict()
     newToken = getToken()
@@ -72,7 +117,7 @@ def searchReddit():
     return stockSymbols
 
 def searchStockInfo(stockSymbols):
-    print("Phase 2: Searching for stock info")
+    pprint("Phase 2: Searching for stock info")
     stockQuoteEndpoint = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=<SYMBOL>&apikey=" + stockApiKey
     counter = 0
     jsonData = {"timeStamp" : datetime.now()}
