@@ -21,43 +21,40 @@ def main():
             pprint("Phase 3: Saving to MongoDb")
             insertOne(db, jsonData)
         elif choice == "2":
-            pprint("Displaing Data")
+            pprint("Displaying Data")
             # Data for plotting
-            t = np.arange(0.0, 2.0, 0.01)
-            s = 1 + np.sin(2 * np.pi * t)
-
-            fig, ax = plt.subplots()
-            ax.plot(t, s)
-
-            ax.set(xlabel='time (s)', ylabel='voltage (mV)',
-                title='About as simple as it gets, folks')
+            fig, ax = plt.subplots(figsize=(13,8))
+            dataPoints = createLineData(findItem(db, None))
+            for key in dataPoints:
+                ax.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], label=key)
+            ax.set(xlabel='Timestamp', ylabel='Number of Mentions',
+                title='Number of Reddit Mentions Per Ticker')
             ax.grid()
-
+            ax.legend(loc="best")
+            
             fig.savefig("test.png")
-            plt.show()
-            labels = ['G1', 'G2', 'G3', 'G4', 'G5']
-            men_means = [20, 35, 30, 35, 27]
-            women_means = [25, 32, 34, 20, 25]
-            men_std = [2, 3, 4, 1, 2]
-            women_std = [3, 5, 2, 3, 3]
-            width = 0.35       # the width of the bars: can also be len(x) sequence
-
-            fig, ax = plt.subplots()
-
-            ax.bar(labels, men_means, width, yerr=men_std, label='Men')
-            ax.bar(labels, women_means, width, yerr=women_std, bottom=men_means,
-                label='Women')
-
-            ax.set_ylabel('Scores')
-            ax.set_title('Scores by group and gender')
-            ax.legend()
-
             plt.show()
         elif choice == "3":
             pprint("Exiting")
             break
         else:
             pprint("Not a valid option!")
+
+def createLineData(postData):
+    dataPoints = dict()
+    for post in postData:
+        for entry in post["data"]:
+            currentDataSet = dataPoints.get(entry["symbol"])
+            if currentDataSet is None:
+                dataSet = dict()
+                dataSet["xValues"] = [post["timeStamp"]]
+                dataSet["yValues"] = [entry["numberOfMentions"]]
+                dataPoints[entry["symbol"]] = dataSet
+            else:
+                currentDataSet["xValues"].append(post["timeStamp"])
+                currentDataSet["yValues"].append(entry["numberOfMentions"])
+                dataPoints[entry["symbol"]] = currentDataSet
+    return dataPoints
 
 def isValidSymbol(symbolToCheck):
     regex = re.compile('[0-9@_!#%^&*()<>?/\|}{~:]')
