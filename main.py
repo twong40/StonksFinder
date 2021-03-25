@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import requests
 import itertools
+import random
 import time
 import re
 
@@ -21,24 +22,51 @@ def main():
             pprint("Phase 3: Saving to MongoDb")
             insertOne(db, jsonData)
         elif choice == "2":
-            pprint("Displaying Data")
-            # Data for plotting
-            fig, ax = plt.subplots(figsize=(13,8))
-            dataPoints = createLineData(findItem(db, None))
-            for key in dataPoints:
-                ax.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], label=key)
-            ax.set(xlabel='Timestamp', ylabel='Number of Mentions',
-                title='Number of Reddit Mentions Per Ticker')
-            ax.grid()
-            ax.legend(loc="best")
-            
-            fig.savefig("test.png")
-            plt.show()
+            showData(db)
+
         elif choice == "3":
             pprint("Exiting")
             break
         else:
             pprint("Not a valid option!")
+
+def showData(db):
+    pprint("Displaying Data")
+    # Data for plotting
+    fig, ax = plt.subplots(figsize=(14,8))
+    dataPoints = createLineData(findItem(db, None))
+    maxLabel = createMaxLabels(dataPoints)
+    for key in dataPoints:
+        if key in maxLabel.keys():
+            ax.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], marker='o', linewidth=3, label=key, color=maxLabel[key][1])
+        else:
+            ax.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], linestyle="-")
+    ax.set(xlabel='Timestamp', ylabel='Number of Mentions',
+        title='Number of Reddit Mentions Per Ticker')
+    ax.grid()
+    ax.legend(bbox_to_anchor=(1.03, 1), loc='upper left', borderaxespad=0.)
+    
+    fig.savefig("NumberOfMentionsVsTimestamp.png")
+    plt.show()
+
+def createMaxLabels(dataPoints):
+    valueList = dict()
+    for symbol in dataPoints:
+        averageValue = average(dataPoints[symbol]["yValues"])
+        random_number = random.randint(0,16777215)
+        hex_number = str(hex(random_number))
+        hex_number ='#'+ hex_number[2:]
+        if len(valueList) < 5:
+            valueList[symbol] = (averageValue, hex_number)
+        else:
+            minTuple = min(valueList.items(), key=lambda x: x[1])
+            if minTuple[1][0] < averageValue:
+                valueList.pop(minTuple[0], None)
+                valueList[symbol] = (averageValue, hex_number)
+    return valueList
+
+def average(lst):
+    return sum(lst) / len(lst)
 
 def createLineData(postData):
     dataPoints = dict()
