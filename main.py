@@ -33,36 +33,41 @@ def main():
 def showData(db):
     pprint("Displaying Data")
     # Data for plotting
-    fig, ax = plt.subplots(figsize=(14,8))
+    fig, (ax1, ax2) = plt.subplots(2,1,figsize=(14,8))
     dataPoints = createLineData(findItem(db, None))
     maxLabel = createMaxLabels(dataPoints)
     for key in dataPoints:
         if key in maxLabel.keys():
-            ax.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], marker='o', linewidth=3, label=key, color=maxLabel[key][1])
+            ax1.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], marker='o', linewidth=3, label=key, color=maxLabel[key][1])
         else:
-            ax.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], linestyle="-")
-    ax.set(xlabel='Timestamp', ylabel='Number of Mentions',
+            ax1.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], linestyle="--")
+    ax1.set(xlabel='Timestamp', ylabel='Number of Mentions',
         title='Number of Reddit Mentions Per Ticker')
-    ax.grid()
-    ax.legend(bbox_to_anchor=(1.03, 1), loc='upper left', borderaxespad=0.)
-    
-    fig.savefig("NumberOfMentionsVsTimestamp.png")
+    ax1.grid()
+    ax1.legend(bbox_to_anchor=(1.03, 1), loc='upper left', borderaxespad=0.)
+    # fig.savefig("graphs/NumberOfMentionsVsTimestamp_" + str(datetime.today()).replace(" ","") + ".png")
+    stocksDataPoints = createStockLineData(maxLabel.keys(), findItem(db, None))
+    for key in stocksDataPoints:
+        ax2.plot(stocksDataPoints[key]["xValues"], stocksDataPoints[key]["yValues"], marker='o', linewidth=3, label=key, color=maxLabel[key][1])
+    ax2.set(xlabel='Timestamp', ylabel='High of the day',
+        title='Popular Reddit Stock Vs Stock High')
+    ax2.grid()
+    # fig.savefig("graphs/NumberOfMentionsVsTimestamp_" + str(datetime.today()).replace(" ","") + ".png")
+    plt.subplots_adjust(left=None, bottom=0.06, right=None, top=None, wspace=None, hspace=0.28)
     plt.show()
 
 def createMaxLabels(dataPoints):
     valueList = dict()
     for symbol in dataPoints:
         averageValue = average(dataPoints[symbol]["yValues"])
-        random_number = random.randint(0,16777215)
-        hex_number = str(hex(random_number))
-        hex_number ='#'+ hex_number[2:]
+        color = [random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)]
         if len(valueList) < 5:
-            valueList[symbol] = (averageValue, hex_number)
+            valueList[symbol] = (averageValue, color)
         else:
             minTuple = min(valueList.items(), key=lambda x: x[1])
             if minTuple[1][0] < averageValue:
                 valueList.pop(minTuple[0], None)
-                valueList[symbol] = (averageValue, hex_number)
+                valueList[symbol] = (averageValue, color)
     return valueList
 
 def average(lst):
@@ -82,6 +87,23 @@ def createLineData(postData):
                 currentDataSet["xValues"].append(post["timeStamp"])
                 currentDataSet["yValues"].append(entry["numberOfMentions"])
                 dataPoints[entry["symbol"]] = currentDataSet
+    return dataPoints
+
+def createStockLineData(symbols, postData):
+    dataPoints = dict()
+    for post in postData:
+        for symbol in symbols:
+            storedData = next((item for item in post["data"] if item["symbol"] == symbol), None)
+            currentDataSet = dataPoints.get(symbol)
+            if currentDataSet is None:
+                dataSet = dict()
+                dataSet["xValues"] = [post["timeStamp"]]
+                dataSet["yValues"] = [float(storedData["high"])]
+                dataPoints[symbol] = dataSet
+            else:
+                currentDataSet["xValues"].append(post["timeStamp"])
+                currentDataSet["yValues"].append(float(storedData["high"]))
+                dataPoints[symbol] = currentDataSet
     return dataPoints
 
 def isValidSymbol(symbolToCheck):
