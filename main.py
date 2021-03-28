@@ -41,8 +41,8 @@ def showData(db):
             ax1.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], marker='o', linewidth=3, label=key, color=maxLabel[key][1])
         else:
             ax1.plot(dataPoints[key]["xValues"], dataPoints[key]["yValues"], linestyle="--")
-    ax1.set(xlabel='Timestamp', ylabel='Number of Mentions',
-        title='Number of Reddit Mentions Per Ticker')
+    ax1.set(xlabel='Timestamp', ylabel='Reddit Score',
+        title='Reddit Score Per Ticker')
     ax1.grid()
     ax1.legend(bbox_to_anchor=(1.03, 1), loc='upper left', borderaxespad=0.)
     # fig.savefig("graphs/NumberOfMentionsVsTimestamp_" + str(datetime.today()).replace(" ","") + ".png")
@@ -73,6 +73,9 @@ def createMaxLabels(dataPoints):
 def average(lst):
     return sum(lst) / len(lst)
 
+def computeReditScore(mongoData):
+    return mongoData["numberOfMentions"] * (sum(mongoData["ups"]) + average(mongoData["upvote_ratio"]) + sum(mongoData["total_awards_received"]) + sum(mongoData["gilded"]) + sum(mongoData["num_comments"]))
+
 def createLineData(postData):
     dataPoints = dict()
     for post in postData:
@@ -81,11 +84,11 @@ def createLineData(postData):
             if currentDataSet is None:
                 dataSet = dict()
                 dataSet["xValues"] = [post["timeStamp"]]
-                dataSet["yValues"] = [entry["numberOfMentions"]]
+                dataSet["yValues"] = [computeReditScore(entry)]
                 dataPoints[entry["symbol"]] = dataSet
             else:
                 currentDataSet["xValues"].append(post["timeStamp"])
-                currentDataSet["yValues"].append(entry["numberOfMentions"])
+                currentDataSet["yValues"].append(computeReditScore(entry))
                 dataPoints[entry["symbol"]] = currentDataSet
     return dataPoints
 
@@ -95,15 +98,16 @@ def createStockLineData(symbols, postData):
         for symbol in symbols:
             storedData = next((item for item in post["data"] if item["symbol"] == symbol), None)
             currentDataSet = dataPoints.get(symbol)
-            if currentDataSet is None:
-                dataSet = dict()
-                dataSet["xValues"] = [post["timeStamp"]]
-                dataSet["yValues"] = [float(storedData["high"])]
-                dataPoints[symbol] = dataSet
-            else:
-                currentDataSet["xValues"].append(post["timeStamp"])
-                currentDataSet["yValues"].append(float(storedData["high"]))
-                dataPoints[symbol] = currentDataSet
+            if storedData is not None:
+                if currentDataSet is None:
+                    dataSet = dict()
+                    dataSet["xValues"] = [post["timeStamp"]]
+                    dataSet["yValues"] = [float(storedData["high"])]
+                    dataPoints[symbol] = dataSet
+                else:
+                    currentDataSet["xValues"].append(post["timeStamp"])
+                    currentDataSet["yValues"].append(float(storedData["high"]))
+                    dataPoints[symbol] = currentDataSet
     return dataPoints
 
 def isValidSymbol(symbolToCheck):
