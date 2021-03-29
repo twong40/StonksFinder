@@ -74,7 +74,7 @@ def average(lst):
     return sum(lst) / len(lst)
 
 def computeReditScore(mongoData):
-    return mongoData["numberOfMentions"] * (sum(mongoData["ups"]) + average(mongoData["upvote_ratio"]) + sum(mongoData["total_awards_received"]) + sum(mongoData["gilded"]) + sum(mongoData["num_comments"]))
+    return (mongoData["numberOfMentions"] * 25) + sum(mongoData["ups"]) + (average(mongoData["upvote_ratio"]) * 20 ) + (sum(mongoData["total_awards_received"]) * 10) + (sum(mongoData["gilded"]) * 10) + sum(mongoData["num_comments"])
 
 def createLineData(postData):
     dataPoints = dict()
